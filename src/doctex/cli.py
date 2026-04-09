@@ -6,7 +6,7 @@ from doctex.pipeline import export_pipeline, import_pipeline
 
 
 @click.group()
-@click.version_option(package_name="doctex")
+@click.version_option(package_name="tex2docx")
 def cli():
     """Convert between LaTeX and Word documents."""
 

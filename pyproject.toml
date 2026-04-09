@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "doctex"
+name = "tex2docx"
 version = "0.1.0"
-description = "Bidirectional LaTeX-to-DOCX converter for academic papers"
+description = "Bidirectional TeX-to-DOCX converter for academic papers"
 requires-python = ">=3.12"
 dependencies = [
     "pylatexenc>=3.0a30",
@@ -17,6 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
+tex2docx = "doctex.cli:cli"
 doctex = "doctex.cli:cli"
 
 [tool.hatch.build.targets.wheel]
