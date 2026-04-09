@@ -18,7 +18,6 @@ dependencies = [
 
 [project.scripts]
 tex2docx = "doctex.cli:cli"
-doctex = "doctex.cli:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/doctex"]

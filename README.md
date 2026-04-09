@@ -2,13 +2,12 @@
 
 `tex2docx` is a bidirectional TeX and DOCX conversion project for academic papers.
 
-The current Python module path is `doctex`. The public package and primary CLI are `tex2docx`.
+The current Python module path is `doctex`. The public package and CLI are `tex2docx`.
 
 It provides:
 
 - `tex2docx export`: convert `.tex` to `.docx`
 - `tex2docx import`: convert `.docx` to `.tex`
-- `doctex`: legacy CLI alias
 
 ## Install
 
