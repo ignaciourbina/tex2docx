@@ -1,6 +1,6 @@
 """Tests for the IR node definitions and tree utilities."""
 
-from doctex.ir import (
+from tex2docx.ir import (
     Document, Preamble, Metadata, Section, SectionLevel,
     Paragraph, Text, Formatted, FormatKind,
     List, ListItem, ListKind, Table, TableRow, TableCell,

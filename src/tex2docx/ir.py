@@ -1,4 +1,4 @@
-"""Intermediate Representation for doctex document trees.
+"""Intermediate Representation for tex2docx document trees.
 
 The IR is the central data structure. Every pipeline is Source -> IR -> Target.
 """

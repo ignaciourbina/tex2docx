@@ -1,8 +1,8 @@
-"""Custom exception hierarchy for doctex."""
+"""Custom exception hierarchy for tex2docx."""
 
 
 class DoctexError(Exception):
-    """Base exception for doctex."""
+    """Base exception for tex2docx."""
 
 
 class ParseError(DoctexError):

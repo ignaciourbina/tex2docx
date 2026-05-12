@@ -1,8 +1,8 @@
-"""CLI interface for doctex."""
+"""CLI interface for tex2docx."""
 
 import click
 
-from doctex.pipeline import export_pipeline, import_pipeline
+from tex2docx.pipeline import export_pipeline, import_pipeline
 
 
 @click.group()

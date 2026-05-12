@@ -21,7 +21,7 @@ from pylatexenc.macrospec import (
 )
 from pylatexenc import macrospec as ms
 
-from doctex.ir import (
+from tex2docx.ir import (
     Abstract,
     Comment,
     Document,
@@ -47,7 +47,7 @@ from doctex.ir import (
     TableRow,
     Text,
 )
-from doctex.errors import ParseError, UnsupportedConstructError
+from tex2docx.errors import ParseError, UnsupportedConstructError
 
 
 def _build_context_db() -> LatexContextDb:
@@ -56,7 +56,7 @@ def _build_context_db() -> LatexContextDb:
     db.set_unknown_macro_spec(MacroSpec("", args_parser=ms.MacroStandardArgsParser("")))
     db.set_unknown_environment_spec(EnvironmentSpec("", args_parser=ms.MacroStandardArgsParser("")))
     db.add_context_category(
-        "doctex-macros",
+        "tex2docx-macros",
         macros=[
             MacroSpec("documentclass", args_parser=ms.MacroStandardArgsParser("[{")),
             MacroSpec("usepackage", args_parser=ms.MacroStandardArgsParser("[{")),

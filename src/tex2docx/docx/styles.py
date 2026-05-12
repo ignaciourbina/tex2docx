@@ -1,4 +1,4 @@
-"""Word style constants and helpers for doctex."""
+"""Word style constants and helpers for tex2docx."""
 
 from docx import Document as DocxDocument
 from docx.shared import Pt, RGBColor
@@ -10,7 +10,7 @@ LATEX_RAW_STYLE = "LaTeX Raw"
 
 
 def ensure_styles(doc: DocxDocument) -> None:
-    """Add custom doctex styles to the document if they don't exist."""
+    """Add custom tex2docx styles to the document if they don't exist."""
     styles = doc.styles
 
     if LATEX_COMMENT_STYLE not in [s.name for s in styles]:

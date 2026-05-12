@@ -4,13 +4,13 @@ import os
 
 from docx import Document as DocxDocument
 
-from doctex.ir import (
+from tex2docx.ir import (
     Abstract, Comment, Document, Formatted, FormatKind,
     Image, List, ListItem, ListKind, Math, Metadata,
     Paragraph, Preamble, RawLatex, Reference, RefKind,
     Section, SectionLevel, Table, TableRow, TableCell, Text,
 )
-from doctex.docx.writer import DocxWriter
+from tex2docx.docx.writer import DocxWriter
 
 
 def _write_and_read(ir_doc, tmp_path):

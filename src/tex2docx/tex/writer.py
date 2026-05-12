@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from doctex.ir import (
+from tex2docx.ir import (
     Abstract,
     Comment,
     Document,

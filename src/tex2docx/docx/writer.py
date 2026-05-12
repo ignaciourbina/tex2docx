@@ -10,7 +10,7 @@ from docx import Document as DocxDocument
 from docx.shared import Inches, Pt, Cm, RGBColor
 from docx.oxml.ns import qn
 
-from doctex.ir import (
+from tex2docx.ir import (
     Abstract,
     Comment,
     Document,
@@ -34,8 +34,8 @@ from doctex.ir import (
     Table,
     Text,
 )
-from doctex.docx.styles import ensure_styles, LATEX_COMMENT_STYLE, LATEX_RAW_STYLE
-from doctex.docx.math import latex_to_omml
+from tex2docx.docx.styles import ensure_styles, LATEX_COMMENT_STYLE, LATEX_RAW_STYLE
+from tex2docx.docx.math import latex_to_omml
 
 
 class DocxWriter:

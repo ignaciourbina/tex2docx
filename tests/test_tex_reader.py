@@ -1,7 +1,7 @@
 """Tests for LaTeX parser (tex -> IR)."""
 
-from doctex.tex.reader import TexReader
-from doctex.ir import (
+from tex2docx.tex.reader import TexReader
+from tex2docx.ir import (
     Abstract, Comment, Document, Formatted, FormatKind,
     Image, List, ListItem, ListKind, Math, Metadata,
     Paragraph, Preamble, RawLatex, Reference, RefKind,

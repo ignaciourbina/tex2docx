@@ -4,11 +4,11 @@ from pathlib import Path
 
 import click
 
-from doctex.ir import Document, Image, walk
-from doctex.tex.reader import TexReader
-from doctex.tex.writer import TexWriter
-from doctex.docx.writer import DocxWriter
-from doctex.docx.reader import DocxReader
+from tex2docx.ir import Document, Image, walk
+from tex2docx.tex.reader import TexReader
+from tex2docx.tex.writer import TexWriter
+from tex2docx.docx.writer import DocxWriter
+from tex2docx.docx.reader import DocxReader
 
 
 def export_pipeline(
@@ -68,7 +68,7 @@ def _resolve_images(ir_doc: Document, base_dir: Path) -> None:
 
 def _apply_template_preamble(ir_doc: Document, template_path: str) -> None:
     """Replace ir_doc's preamble with the template's preamble."""
-    from doctex.ir import Preamble
+    from tex2docx.ir import Preamble
 
     template_source = Path(template_path).read_text(encoding="utf-8")
     template_doc = TexReader(template_source, strict=False).parse()

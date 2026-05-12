@@ -17,10 +17,10 @@ dependencies = [
 ]
 
 [project.scripts]
-tex2docx = "doctex.cli:cli"
+tex2docx = "tex2docx.cli:cli"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/doctex"]
+packages = ["src/tex2docx"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

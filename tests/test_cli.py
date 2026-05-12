@@ -4,7 +4,7 @@ import os
 
 from click.testing import CliRunner
 
-from doctex.cli import cli
+from tex2docx.cli import cli
 
 
 def test_export_command(fixtures_dir, tmp_path):

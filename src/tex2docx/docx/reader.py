@@ -12,7 +12,7 @@ from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.oxml.ns import qn
 from lxml import etree
 
-from doctex.ir import (
+from tex2docx.ir import (
     Abstract,
     Comment,
     Document,
@@ -38,8 +38,8 @@ from doctex.ir import (
     TableRow,
     Text,
 )
-from doctex.docx.styles import LATEX_COMMENT_STYLE, LATEX_RAW_STYLE
-from doctex.docx.math import omml_to_latex, OMML_NS
+from tex2docx.docx.styles import LATEX_COMMENT_STYLE, LATEX_RAW_STYLE
+from tex2docx.docx.math import omml_to_latex, OMML_NS
 
 
 # Pattern to match reference markers like [cite:key], [ref:key], [label:key]
