@@ -38,6 +38,12 @@ from tex2docx.docx.styles import ensure_styles, LATEX_COMMENT_STYLE, LATEX_RAW_S
 from tex2docx.docx.math import latex_to_omml
 
 
+TABLE_BODY_FONT_PT = 8.5
+TABLE_NOTE_MAX_FONT_PT = TABLE_BODY_FONT_PT * 0.8
+TABLE_NOTE_MIN_FONT_PT = 6.0
+TABLE_NOTE_TARGET_CHARS = 320
+
+
 class DocxWriter:
     """Walk an IR tree and produce a .docx file."""
 
@@ -86,7 +92,12 @@ class DocxWriter:
             self.doc.core_properties.title = node.title
             self.doc.add_heading(node.title, level=0)
         if node.author:
-            self.doc.core_properties.author = node.author
+            existing_author = self.doc.core_properties.author
+            if existing_author == "python-docx":
+                existing_author = ""
+            self.doc.core_properties.author = (
+                f"{existing_author}; {node.author}" if existing_author else node.author
+            )
             para = self.doc.add_paragraph()
             run = para.add_run(node.author)
             run.italic = True
@@ -197,12 +208,44 @@ class DocxWriter:
         table.style = "Table Grid"
 
         for i, row_node in enumerate(node.children):
+            row_text = self._table_row_text(row_node)
+            font_size = self._table_note_font_size(row_text) if self._is_note_row(row_text) else TABLE_BODY_FONT_PT
             for j, cell_node in enumerate(row_node.children):
                 cell = table.cell(i, j)
                 # Clear default paragraph
                 cell.paragraphs[0].text = ""
                 for child in cell_node.children:
                     self._add_inline(cell.paragraphs[0], child)
+                self._set_paragraph_font_size(cell.paragraphs[0], font_size)
+
+    def _table_row_text(self, row_node: Node) -> str:
+        return " ".join(self._node_text(cell) for cell in row_node.children).strip()
+
+    def _node_text(self, node: Node) -> str:
+        match node:
+            case Text(content=c):
+                return c
+            case Reference(kind=kind, key=key):
+                return f"[{kind.name.lower()}:{key}]"
+            case Math(content=c):
+                return c
+            case RawLatex(content=c):
+                return c
+            case _:
+                return "".join(self._node_text(child) for child in node.children)
+
+    def _is_note_row(self, row_text: str) -> bool:
+        normalized = row_text.lstrip()
+        return normalized.startswith("Note.") or normalized.startswith("Note ")
+
+    def _table_note_font_size(self, row_text: str) -> float:
+        text_len = max(len(row_text), 1)
+        proportional_scale = min(1.0, (TABLE_NOTE_TARGET_CHARS / text_len) ** 0.5)
+        return max(TABLE_NOTE_MIN_FONT_PT, TABLE_NOTE_MAX_FONT_PT * proportional_scale)
+
+    def _set_paragraph_font_size(self, para, font_size: float) -> None:
+        for run in para.runs:
+            run.font.size = Pt(font_size)
 
     def _emit_image_inline(self, para, node: Image) -> None:
         path = node.resolved_path or node.path
@@ -286,6 +329,15 @@ class DocxWriter:
                 }
                 # Store as custom property via core properties' keywords field
                 # (python-docx doesn't support custom properties directly,
-                # so we use the 'keywords' field as a carrier)
-                self.doc.core_properties.keywords = f"doctex_preamble:{json.dumps(data)}"
+                # so we use the 'keywords' field as a carrier). Word limits
+                # this property to 255 chars, so fall back to a compact marker
+                # for larger manuscripts rather than failing the export.
+                payload = f"doctex_preamble:{json.dumps(data)}"
+                if len(payload) > 255:
+                    payload = json.dumps({
+                        "document_class": child.document_class,
+                        "class_options": child.class_options,
+                    })
+                    payload = f"doctex_preamble_compact:{payload}"
+                self.doc.core_properties.keywords = payload
                 break

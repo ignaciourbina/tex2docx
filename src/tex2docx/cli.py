@@ -17,12 +17,24 @@ def cli():
               help="Output .docx path. Default: same name with .docx extension.")
 @click.option("--image-dir", type=click.Path(exists=True, file_okay=False), default=None,
               help="Directory to resolve \\includegraphics paths. Default: directory of input .tex.")
+@click.option("--asset-dir", type=click.Path(file_okay=False), default=None,
+              help="Directory for portable copied/converted figure assets.")
+@click.option("--pdf-dpi", type=int, default=220,
+              help="DPI for PDF figure conversion to PNG.")
+@click.option("--flatten/--no-flatten", default=False,
+              help="Inline resolvable \\input and \\include files before exporting.")
+@click.option("--flatten-output", type=click.Path(), default=None,
+              help="Optional path to write the flattened .tex source.")
 @click.option("--strict/--no-strict", default=False,
               help="Fail on unsupported constructs instead of preserving them.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose logging.")
-def export_cmd(input_tex, output, image_dir, strict, verbose):
+def export_cmd(input_tex, output, image_dir, asset_dir, pdf_dpi,
+               flatten, flatten_output, strict, verbose):
     """Convert a .tex file to .docx."""
+    flatten = flatten or flatten_output is not None
     export_pipeline(input_tex, output=output, image_dir=image_dir,
+                    asset_dir=asset_dir, pdf_dpi=pdf_dpi,
+                    flatten=flatten, flatten_output=flatten_output,
                     strict=strict, verbose=verbose)
 
 

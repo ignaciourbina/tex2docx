@@ -4,7 +4,9 @@ from pathlib import Path
 
 import click
 
+from tex2docx.assets import extract_graphics_paths, prepare_document_images
 from tex2docx.ir import Document, Image, walk
+from tex2docx.tex.flatten import flatten_tex_file
 from tex2docx.tex.reader import TexReader
 from tex2docx.tex.writer import TexWriter
 from tex2docx.docx.writer import DocxWriter
@@ -16,20 +18,44 @@ def export_pipeline(
     *,
     output: str | None = None,
     image_dir: str | None = None,
+    asset_dir: str | None = None,
+    pdf_dpi: int = 220,
+    flatten: bool = False,
+    flatten_output: str | None = None,
     strict: bool = False,
     verbose: bool = False,
 ) -> None:
     """tex -> IR -> docx"""
     tex_path = Path(input_tex).resolve()
     output_path = Path(output) if output else tex_path.with_suffix(".docx")
-    img_dir = Path(image_dir) if image_dir else tex_path.parent
+    img_dir = Path(image_dir).resolve() if image_dir else tex_path.parent
+    portable_asset_dir = Path(asset_dir).resolve() if asset_dir else (
+        output_path.parent / f"{output_path.stem}_assets"
+    ).resolve()
 
-    source = tex_path.read_text(encoding="utf-8")
+    if flatten:
+        source = flatten_tex_file(tex_path)
+        if flatten_output:
+            flatten_path = Path(flatten_output)
+            flatten_path.parent.mkdir(parents=True, exist_ok=True)
+            flatten_path.write_text(source, encoding="utf-8")
+            if verbose:
+                click.echo(f"Wrote flattened TeX {flatten_path}")
+    else:
+        source = tex_path.read_text(encoding="utf-8")
+
     ir_doc = TexReader(source, strict=strict).parse()
 
-    _resolve_images(ir_doc, img_dir)
+    graphics_paths = extract_graphics_paths(source, tex_path.parent)
+    search_dirs = [img_dir, *graphics_paths]
+    prepare_document_images(
+        ir_doc,
+        search_dirs=search_dirs,
+        asset_dir=portable_asset_dir,
+        pdf_dpi=pdf_dpi,
+    )
 
-    DocxWriter(image_dir=str(img_dir)).write(ir_doc, str(output_path))
+    DocxWriter(image_dir=str(portable_asset_dir)).write(ir_doc, str(output_path))
     click.echo(f"Wrote {output_path}")
 
 

@@ -14,6 +14,7 @@ dependencies = [
     "Pillow>=10.0",
     "latex2mathml",
     "lxml",
+    "pymupdf>=1.24",
 ]
 
 [project.scripts]

@@ -49,6 +49,38 @@ def test_export_full_paper(fixtures_dir, tmp_path):
     assert os.path.getsize(output_docx) > 1000
 
 
+def test_export_with_flatten_output(tmp_path):
+    main = tmp_path / "main.tex"
+    section_dir = tmp_path / "sections"
+    section_dir.mkdir()
+    (section_dir / "intro.tex").write_text("Flattened body text.\n", encoding="utf-8")
+    main.write_text(
+        "\\documentclass{article}\n"
+        "\\begin{document}\n"
+        "\\input{sections/intro}\n"
+        "\\end{document}\n",
+        encoding="utf-8",
+    )
+    output_docx = str(tmp_path / "flattened.docx")
+    flatten_output = tmp_path / "flattened.tex"
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "export",
+        str(main),
+        "-o",
+        output_docx,
+        "--flatten-output",
+        str(flatten_output),
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert os.path.isfile(output_docx)
+    flattened = flatten_output.read_text(encoding="utf-8")
+    assert "Flattened body text." in flattened
+    assert "\\input{sections/intro}" not in flattened
+
+
 def test_roundtrip_via_cli(fixtures_dir, tmp_path):
     """Full CLI round-trip: export -> import -> verify."""
     input_tex = str(fixtures_dir / "full_paper.tex")

@@ -160,6 +160,19 @@ See \ref{fig:1} and \cite{paper2024}.
     assert (RefKind.LABEL, "sec:intro") in kinds
 
 
+def test_footnote_inline():
+    source = r"""
+\documentclass{article}
+\begin{document}
+Sentence with a footnote.\footnote{Footnote content with \textit{formatting}.}
+\end{document}
+"""
+    doc = TexReader(source).parse()
+    paragraphs = find_all(doc, Paragraph)
+    text = "".join(_node_text(child) for child in paragraphs[0].children)
+    assert "[Footnote: Footnote content with formatting.]" in text
+
+
 def test_comments():
     source = r"""
 \documentclass{article}
@@ -258,6 +271,55 @@ def test_includegraphics():
     assert len(images) == 1
     assert images[0].path == "figures/plot.png"
     assert images[0].width == "0.8\\textwidth"
+
+
+def test_longtable_booktabs():
+    source = r"""
+\documentclass{article}
+\usepackage{longtable}
+\usepackage{booktabs}
+\begin{document}
+
+\begin{longtable}{ll}
+\caption{Example table}\label{tab:example} \\
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+\endfirsthead
+\multicolumn{2}{l}{\textit{continued}} \\
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{continued on next page} \\
+\endfoot
+\bottomrule
+\multicolumn{2}{l}{\textit{Note.} Footer note} \\
+\endlastfoot
+Rows & 10 \\
+Columns & 2 \\
+\end{longtable}
+
+\end{document}
+"""
+    doc = TexReader(source).parse()
+    tables = find_all(doc, Table)
+    assert len(tables) == 1
+    assert len(tables[0].children) == 4
+    assert _cell_text(tables[0].children[0].children[0]) == "Metric"
+    assert _cell_text(tables[0].children[1].children[0]).strip() == "Rows"
+    assert "Note." in _cell_text(tables[0].children[-1].children[0])
+
+
+def _cell_text(cell):
+    return "".join(_node_text(child) for child in cell.children)
+
+
+def _node_text(node):
+    if isinstance(node, Text):
+        return node.content
+    return "".join(_node_text(child) for child in node.children)
 
 
 def test_preamble_packages():

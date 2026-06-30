@@ -48,6 +48,7 @@ from tex2docx.ir import (
     Text,
 )
 from tex2docx.errors import ParseError, UnsupportedConstructError
+from tex2docx.tex.tables import TABLE_CONTROL_MACROS, parse_table_environment
 
 
 def _build_context_db() -> LatexContextDb:
@@ -61,7 +62,7 @@ def _build_context_db() -> LatexContextDb:
             MacroSpec("documentclass", args_parser=ms.MacroStandardArgsParser("[{")),
             MacroSpec("usepackage", args_parser=ms.MacroStandardArgsParser("[{")),
             MacroSpec("title", args_parser=ms.MacroStandardArgsParser("{")),
-            MacroSpec("author", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("author", args_parser=ms.MacroStandardArgsParser("[{")),
             MacroSpec("date", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("maketitle", args_parser=ms.MacroStandardArgsParser("")),
             MacroSpec("section", args_parser=ms.MacroStandardArgsParser("*{")),
@@ -71,16 +72,45 @@ def _build_context_db() -> LatexContextDb:
             MacroSpec("textit", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("underline", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("emph", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("texttt", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("textrm", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("textsuperscript", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("includegraphics", args_parser=ms.MacroStandardArgsParser("[{")),
             MacroSpec("label", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("ref", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("cite", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("citep", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("caption", args_parser=ms.MacroStandardArgsParser("[{")),
+            MacroSpec("footnote", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("multicolumn", args_parser=ms.MacroStandardArgsParser("{{{")),
             MacroSpec("item", args_parser=ms.MacroStandardArgsParser("[")),
             MacroSpec("hline", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("toprule", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("midrule", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("bottomrule", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("addlinespace", args_parser=ms.MacroStandardArgsParser("[")),
+            MacroSpec("endfirsthead", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("endhead", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("endfoot", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("endlastfoot", args_parser=ms.MacroStandardArgsParser("")),
             MacroSpec("newline", args_parser=ms.MacroStandardArgsParser("")),
             MacroSpec("\\", args_parser=ms.MacroStandardArgsParser("")),
             MacroSpec("bibliography", args_parser=ms.MacroStandardArgsParser("{")),
             MacroSpec("bibliographystyle", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("journal", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("ead", args_parser=ms.MacroStandardArgsParser("{")),
+            MacroSpec("affiliation", args_parser=ms.MacroStandardArgsParser("[{")),
+            MacroSpec("sep", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("centering", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("clearpage", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("appendix", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("linenumbers", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("begingroup", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("endgroup", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("scriptsize", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("footnotesize", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("allowbreak", args_parser=ms.MacroStandardArgsParser("")),
+            MacroSpec("ldots", args_parser=ms.MacroStandardArgsParser("")),
             # Escaped special characters
             MacroSpec("&", args_parser=ms.MacroStandardArgsParser("")),
             MacroSpec("%", args_parser=ms.MacroStandardArgsParser("")),
@@ -97,9 +127,12 @@ def _build_context_db() -> LatexContextDb:
         environments=[
             EnvironmentSpec("document"),
             EnvironmentSpec("abstract"),
+            EnvironmentSpec("frontmatter"),
+            EnvironmentSpec("keyword"),
             EnvironmentSpec("itemize"),
             EnvironmentSpec("enumerate"),
             EnvironmentSpec("tabular", args_parser=ms.MacroStandardArgsParser("{")),
+            EnvironmentSpec("longtable", args_parser=ms.MacroStandardArgsParser("{")),
             EnvironmentSpec("table", args_parser=ms.MacroStandardArgsParser("[")),
             EnvironmentSpec("figure", args_parser=ms.MacroStandardArgsParser("[")),
             EnvironmentSpec("equation"),
@@ -184,6 +217,30 @@ class TexReader:
         "label": RefKind.LABEL,
         "ref": RefKind.REF,
         "cite": RefKind.CITE,
+        "citep": RefKind.CITE,
+    }
+
+    SKIP_LAYOUT_CMDS = {
+        "noindent",
+        "textwidth",
+        "begingroup",
+        "endgroup",
+        "scriptsize",
+        "footnotesize",
+        "journal",
+        "ead",
+        "affiliation",
+        "centering",
+        "clearpage",
+        "appendix",
+        "linenumbers",
+        *TABLE_CONTROL_MACROS,
+    }
+
+    TRANSPARENT_TEXT_CMDS = {
+        "texttt",
+        "textrm",
+        "textsuperscript",
     }
 
     def __init__(self, source: str, strict: bool = False):
@@ -253,7 +310,7 @@ class TexReader:
                 elif name == "title":
                     metadata.title = _extract_macro_arg(node, 0)
                 elif name == "author":
-                    metadata.author = _extract_macro_arg(node, 0)
+                    metadata.author = _extract_macro_arg(node, 1) or _extract_macro_arg(node, 0)
                 elif name == "date":
                     metadata.date = _extract_macro_arg(node, 0)
                 else:
@@ -304,12 +361,25 @@ class TexReader:
                     inline_buffer.append(self._handle_image(node))
                 elif name == "maketitle":
                     continue  # handled by Metadata presence
+                elif name == "title":
+                    flush_paragraph()
+                    parent.children.append(Metadata(title=_extract_macro_arg(node, 0) or ""))
+                elif name == "author":
+                    flush_paragraph()
+                    parent.children.append(Metadata(author=_extract_macro_arg(node, 1) or _extract_macro_arg(node, 0) or ""))
+                elif name == "date":
+                    flush_paragraph()
+                    parent.children.append(Metadata(date=_extract_macro_arg(node, 0) or ""))
                 elif name == "item":
                     continue  # handled inside list environments
                 elif name in ("\\", "newline"):
                     inline_buffer.append(LineBreak())
-                elif name == "hline":
-                    continue  # handled in tabular
+                elif name == " ":
+                    inline_buffer.append(Text(content=" "))
+                elif name == "sep":
+                    inline_buffer.append(Text(content="; "))
+                elif name in TABLE_CONTROL_MACROS:
+                    continue  # handled in table parsing
                 elif name in ("bibliography", "bibliographystyle"):
                     flush_paragraph()
                     parent.children.append(RawLatex(content=_get_node_verbatim(node)))
@@ -319,7 +389,24 @@ class TexReader:
                 elif name in ("textasciitilde", "textasciicircum"):
                     char = "~" if name == "textasciitilde" else "^"
                     inline_buffer.append(Text(content=char))
-                elif name == "noindent":
+                elif name in self.TRANSPARENT_TEXT_CMDS:
+                    inline_buffer.extend(self._handle_transparent_text(node))
+                elif name == "caption":
+                    flush_paragraph()
+                    caption_nodes = _extract_arg_nodelist(node, 1) or _extract_arg_nodelist(node, 0)
+                    if caption_nodes:
+                        parent.children.append(Paragraph(children=self._parse_inline_nodes(caption_nodes)))
+                elif name == "footnote":
+                    inline_buffer.extend(self._handle_footnote(node))
+                elif name == "multicolumn":
+                    content_nodes = _extract_arg_nodelist(node, 2)
+                    if content_nodes:
+                        inline_buffer.extend(self._parse_inline_nodes(content_nodes))
+                elif name == "ldots":
+                    inline_buffer.append(Text(content="..."))
+                elif name == "allowbreak":
+                    continue
+                elif name in self.SKIP_LAYOUT_CMDS:
                     continue  # skip layout commands
                 elif name == "resizebox":
                     # \resizebox{width}{height}{content} — parse content (arg 2)
@@ -329,8 +416,6 @@ class TexReader:
                     else:
                         # Fallback: try to get the verbatim and re-parse
                         flush_paragraph()
-                elif name == "textwidth":
-                    continue  # dimensionless, skip
                 else:
                     self._handle_unknown_macro(node, inline_buffer, parent, flush_paragraph)
 
@@ -418,6 +503,22 @@ class TexReader:
             children = [Text(content=text)]
         return [Formatted(kind=kind, children=children)]
 
+    def _handle_transparent_text(self, node: LatexMacroNode) -> list[Node]:
+        arg_nodes = _extract_arg_nodelist(node, 0)
+        if arg_nodes:
+            return self._parse_inline_nodes(arg_nodes)
+        text = _extract_macro_arg(node, 0) or ""
+        return [Text(content=text)] if text else []
+
+    def _handle_footnote(self, node: LatexMacroNode) -> list[Node]:
+        arg_nodes = _extract_arg_nodelist(node, 0)
+        children = self._parse_inline_nodes(arg_nodes) if arg_nodes else []
+        return [
+            Text(content=" [Footnote: "),
+            *children,
+            Text(content="]"),
+        ]
+
     def _handle_reference(self, node: LatexMacroNode) -> Reference:
         kind = self.REF_CMDS[node.macroname]
         key = _extract_macro_arg(node, 0) or ""
@@ -462,12 +563,20 @@ class TexReader:
             abstract = Abstract()
             self._parse_body(body, abstract)
             parent.children.append(abstract)
+        elif name == "frontmatter":
+            self._parse_body(body, parent)
+        elif name == "keyword":
+            parent.children.append(Paragraph(children=[
+                Text(content="Keywords: "),
+                *self._parse_inline_nodes(body),
+            ]))
         elif name == "itemize":
             self._parse_list(body, ListKind.BULLETED, parent)
         elif name == "enumerate":
             self._parse_list(body, ListKind.NUMBERED, parent)
-        elif name == "tabular":
-            self._parse_tabular(node, parent)
+        elif name in ("tabular", "longtable"):
+            for child in parse_table_environment(node, self._parse_inline_nodes):
+                parent.children.append(child)
         elif name in ("figure", "table"):
             # Wrapper environments — parse their contents directly
             self._parse_body(body, parent)
@@ -507,6 +616,8 @@ class TexReader:
                 elif isinstance(node, LatexMacroNode):
                     if node.macroname in self.FORMAT_CMDS:
                         current_item.children.extend(self._handle_format(node))
+                    elif node.macroname in self.TRANSPARENT_TEXT_CMDS:
+                        current_item.children.extend(self._handle_transparent_text(node))
                     elif node.macroname in self.REF_CMDS:
                         current_item.children.append(self._handle_reference(node))
                     elif node.macroname == "includegraphics":
@@ -618,10 +729,28 @@ class TexReader:
             elif isinstance(node, LatexMacroNode):
                 if node.macroname in self.FORMAT_CMDS:
                     result.extend(self._handle_format(node))
+                elif node.macroname in self.TRANSPARENT_TEXT_CMDS:
+                    result.extend(self._handle_transparent_text(node))
                 elif node.macroname in self.REF_CMDS:
                     result.append(self._handle_reference(node))
                 elif node.macroname == "includegraphics":
                     result.append(self._handle_image(node))
+                elif node.macroname == "multicolumn":
+                    content_nodes = _extract_arg_nodelist(node, 2)
+                    if content_nodes:
+                        result.extend(self._parse_inline_nodes(content_nodes))
+                elif node.macroname == "footnote":
+                    result.extend(self._handle_footnote(node))
+                elif node.macroname == "ldots":
+                    result.append(Text(content="..."))
+                elif node.macroname == "allowbreak":
+                    continue
+                elif node.macroname == " ":
+                    result.append(Text(content=" "))
+                elif node.macroname == "sep":
+                    result.append(Text(content="; "))
+                elif node.macroname in self.SKIP_LAYOUT_CMDS:
+                    continue
                 elif node.macroname in self.ESCAPED_CHARS:
                     result.append(Text(content=self.ESCAPED_CHARS[node.macroname]))
                 elif node.macroname in ("textasciitilde", "textasciicircum"):

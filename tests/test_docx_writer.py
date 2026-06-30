@@ -39,6 +39,15 @@ def test_metadata(tmp_path):
     assert doc.core_properties.author == "Author Name"
 
 
+def test_metadata_multiple_authors(tmp_path):
+    ir = Document(children=[
+        Metadata(author="First Author"),
+        Metadata(author="Second Author"),
+    ])
+    doc = _write_and_read(ir, tmp_path)
+    assert doc.core_properties.author == "First Author; Second Author"
+
+
 def test_sections(tmp_path):
     ir = Document(children=[
         Section(level=SectionLevel.SECTION, title="Introduction"),
@@ -111,6 +120,30 @@ def test_table(tmp_path):
     assert len(doc.tables[0].rows) == 2
     assert doc.tables[0].cell(0, 0).text == "A"
     assert doc.tables[0].cell(1, 1).text == "2"
+
+
+def test_table_text_sizing(tmp_path):
+    long_note = "Note. " + "Long explanatory note. " * 40
+    ir = Document(children=[
+        Table(col_spec="|c|c|", children=[
+            TableRow(children=[
+                TableCell(children=[Text(content="Header")]),
+                TableCell(children=[Text(content="Value")]),
+            ]),
+            TableRow(children=[
+                TableCell(children=[Text(content=long_note)]),
+                TableCell(children=[]),
+            ]),
+        ])
+    ])
+
+    doc = _write_and_read(ir, tmp_path)
+    body_run = doc.tables[0].cell(0, 0).paragraphs[0].runs[0]
+    note_run = doc.tables[0].cell(1, 0).paragraphs[0].runs[0]
+
+    assert round(body_run.font.size.pt, 1) == 8.5
+    assert note_run.font.size.pt <= body_run.font.size.pt * 0.8
+    assert note_run.font.size.pt >= 6.0
 
 
 def test_reference_markers(tmp_path):
